@@ -1,0 +1,52 @@
+{
+  "_readme": [
+    "social-crawl 参数配置。修改后立即生效（脚本每次运行都会读取本文件），无需改代码。",
+    "加载优先级：命令行 --config <路径>  >  本文件  >  脚本内置默认值。",
+    "所有字段都可省略；省略即沿用内置默认值。字段类型写错时只忽略该字段并打印警告，不会中断采集。",
+    "这里只放“本机环境与限流护栏”，不放关键词/平台选择——那些每次采集都不同，走命令行参数更合适。"
+  ],
+
+  "platforms": {
+    "xhs": "小红书",
+    "zhihu": "知乎",
+    "bili": "B站",
+    "dy": "抖音",
+    "wb": "微博",
+    "ks": "快手",
+    "tieba": "贴吧"
+  },
+
+  "slug_candidates": {
+    "xhs": ["xhs"],
+    "zhihu": ["zhihu"],
+    "bili": ["bilibili", "bili"],
+    "dy": ["douyin", "dy"],
+    "wb": ["weibo", "wb"],
+    "ks": ["kuaishou", "ks"],
+    "tieba": ["tieba"]
+  },
+
+  "edge_paths": [
+    "%PROGRAMFILES%\\Microsoft\\Edge\\Application\\msedge.exe",
+    "%PROGRAMFILES(X86)%\\Microsoft\\Edge\\Application\\msedge.exe",
+    "%LOCALAPPDATA%\\Microsoft\\Edge\\Application\\msedge.exe"
+  ],
+
+  "edge_user_data_dir": "%LOCALAPPDATA%\\dsh-edge-cdp",
+
+  "defaults": {
+    "platform": "xhs",
+    "browser": "edge",
+    "login": "qrcode",
+    "headless": "no"
+  },
+
+  "guardrails": {
+    "timeout": 3600,
+    "warn_timeout_below": 300,
+    "limit": 20,
+    "comments_per_item": 20,
+    "concurrency": 1,
+    "max_limit": 200
+  }
+}

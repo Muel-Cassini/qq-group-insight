@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>群聊汇总 × 社媒交叉比对 · 本地控制台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>群聊汇总工作台</h1>
+    <div class="sub">QQ 群聊 × 社媒 交叉比对</div>
+    <nav class="nav" id="nav">
+      <button data-page="exports" class="active">① 导出与汇总</button>
+      <button data-page="collect">② 采集与关键词</button>
+      <button data-page="compare">③ 交叉比对</button>
+      <button data-page="summary">④ 总结</button>
+      <button data-page="docs">⑤ 文件汇总</button>
+      <button data-page="settings">⑥ 设置</button>
+    </nav>
+    <div class="foot">
+      <div id="svcStatus">
+        <div><span class="dot" id="dotEdge"></span>Edge 调试 <span class="muted" id="edgeText">检查中…</span></div>
+        <div><span class="dot" id="dotDsh"></span>DSH <span class="muted" id="dshText">检查中…</span></div>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap">
+        <button class="btn small" id="btnEnsureEdge">启动 Edge</button>
+        <button class="btn small" id="btnEnsureDsh">启动 DSH</button>
+        <button class="btn small" id="btnOpenDsh">打开 DSH</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="v-splitter" id="splitSidebar" title="拖动调整侧边栏宽度（双击恢复默认）"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <h2 id="pageTitle">导出与汇总</h2>
+      <div class="spacer"></div>
+      <button class="btn" id="btnOpenProject">打开项目文件夹</button>
+      <button class="btn" id="btnRefresh">刷新</button>
+    </header>
+
+    <div class="content">
+      <!-- ============ ① 导出与汇总 ============ -->
+      <section class="page active" id="page-exports">
+        <div class="card">
+          <h3>一键全流程 <span class="hint">扫描最新导出 → 汇总 → 推荐关键词 → 采集 → 比对 → 总结</span></h3>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="flowDigest" checked> 群聊汇总</label>
+            <label class="check"><input type="checkbox" id="flowClassify"> AI 复判分类</label>
+            <label class="check"><input type="checkbox" id="flowKeywords"> 推荐关键词</label>
+            <label class="check"><input type="checkbox" id="flowCrawl"> 社媒采集</label>
+            <label class="check"><input type="checkbox" id="flowCompare"> 交叉比对</label>
+            <label class="check"><input type="checkbox" id="flowSummary" checked> 生成总结</label>
+            <div class="field">
+              <label>总结方式</label>
+              <select id="flowEngine">
+                <option value="dsh">用本地 DSH</option>
+                <option value="api">用我的 API</option>
+                <option value="prompt">只生成提示词</option>
+              </select>
+            </div>
+            <button class="btn primary" id="btnFullRun">开始一键流程</button>
+            <button class="btn" id="btnResumeFlow" title="从上次失败的步骤继续">从断点继续</button>
+            <button class="btn danger" id="btnCancelFlow" disabled>停止</button>
+          </div>
+          <div class="progress" id="flowProgressWrap" style="display:none"><span id="flowProgress"></span></div>
+          <div class="muted" id="flowHint">提示：一键流程会按勾选项依次执行；中途失败会停在该步，可点「从断点继续」。</div>
+        </div>
+
+        <div class="card">
+          <h3>导出记录 <span class="hint">来自 data/qq-chat-exporter/（手动导出与定时导出）</span></h3>
+          <div class="row" style="margin-bottom:8px">
+            <button class="btn small" id="btnScanExports">扫描</button>
+            <button class="btn small" id="btnDigestSelected">汇总选中项</button>
+            <button class="btn small" id="btnArchiveSelected">归档选中项</button>
+            <button class="btn small danger" id="btnDeleteSelected">删除选中项（回收站）</button>
+            <div class="spacer" style="flex:1"></div>
+            <label class="check"><input type="checkbox" id="skipSummarized"> 隐藏已汇总<span id="skipSummarizedCount" class="muted"></span></label>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:32px"><input type="checkbox" id="checkAllExports"></th>
+                <th>群 / 群号</th><th>时间范围</th><th>消息数</th><th>大小</th><th>导出时间</th><th>状态</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="exportRows"><tr><td colspan="8" class="empty">点击「扫描」加载导出记录</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>单条聊天记录汇总 <span class="hint">从扫描到的任意一条聊天记录里挑一条单独汇总，可限定日期范围</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>选择聊天记录（手动导出 + 定时导出，含已汇总的）</label>
+              <select id="oneDigestPick"></select>
+            </div>
+            <button class="btn small" id="btnOneDigestReload">刷新列表</button>
+            <button class="btn small" id="btnOneDigestOpen" disabled>打开已有产物</button>
+          </div>
+          <div class="muted" id="oneDigestInfo" style="margin-top:8px">（先选择一条聊天记录）</div>
+          <div class="row" style="margin-top:8px">
+            <div class="field"><label>起始日期（可选）</label><input type="date" id="oneDigestFrom"></div>
+            <div class="field"><label>结束日期（可选）</label><input type="date" id="oneDigestTo"></div>
+            <div class="field grow">
+              <label>只汇总会话名包含（可选）</label>
+              <input type="text" id="oneDigestChat" placeholder="留空 = 全部；按子串匹配，不区分大小写">
+            </div>
+            <div class="field grow">
+              <label>输出目录（可选）</label>
+              <input type="text" id="oneDigestOut" placeholder="留空 = 自动命名到 artifacts/qq/；可填绝对路径">
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="check"><input type="checkbox" id="oneDigestMedia" checked> 校验媒体文件（图片/文件是否缺失）</label>
+            <button class="btn" id="btnOneDigestFillRange">用该记录的时间范围填充</button>
+            <button class="btn primary" id="btnOneDigestRun">汇总这一条</button>
+          </div>
+          <div class="muted" id="oneDigestHint" style="margin-top:8px">
+            日期留空 = 汇总该记录的全部消息；填了日期只汇总区间内的消息。产物与「汇总选中项」完全一致（overall.md / digest / p1-todo / media-index）。
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>汇总产物 <span class="hint">artifacts/qq/ 下每一次群聊汇总</span></h3>
+          <table>
+            <thead><tr><th>汇总目录</th><th>覆盖日期</th><th>产物</th><th>生成时间</th><th></th></tr></thead>
+            <tbody id="summaryRows"><tr><td colspan="5" class="empty">暂无汇总</td></tr></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>内容预览</h3>
+          <div class="row" style="margin-bottom:8px">
+            <div class="field grow">
+              <label>选择要查看的文件</label>
+              <select id="artifactPick"></select>
+            </div>
+            <button class="btn" id="btnLoadArtifact">查看</button>
+          </div>
+          <pre class="preview" id="artifactPreview">（选择文件后点「查看」）</pre>
+        </div>
+      </section>
+
+      <!-- ============ ② 采集与关键词 ============ -->
+      <section class="page" id="page-collect">
+        <div class="card">
+          <h3>采集设置</h3>
+          <div class="row">
+            <div class="field">
+              <label>平台</label>
+              <select id="crawlPlatform"></select>
+            </div>
+            <div class="field">
+              <label>模式</label>
+              <select id="crawlMode">
+                <option value="search">关键词搜索</option>
+                <option value="detail">指定笔记 / 帖子链接</option>
+                <option value="creator">指定创作者主页</option>
+              </select>
+            </div>
+            <div class="field grow" id="fieldKeywords">
+              <label>关键词（多个用空格分隔）</label>
+              <input type="text" id="crawlKeywords" placeholder="例如：华为 校招 宣讲">
+            </div>
+            <div class="field grow" id="fieldSpecified" style="display:none">
+              <label>笔记 / 帖子 ID 或完整 URL（多个用逗号分隔）</label>
+              <input type="text" id="crawlSpecified" placeholder="https://www.xiaohongshu.com/explore/xxxx">
+            </div>
+            <div class="field grow" id="fieldCreator" style="display:none">
+              <label>创作者 ID 或主页 URL（多个用逗号分隔）</label>
+              <input type="text" id="crawlCreator" placeholder="https://space.bilibili.com/123456">
+            </div>
+            <div class="field">
+              <label>条数上限</label>
+              <input type="number" id="crawlLimit" value="20" min="1">
+            </div>
+            <div class="field">
+              <label>每条评论上限</label>
+              <input type="number" id="crawlComments" value="20" min="0">
+            </div>
+            <label class="check"><input type="checkbox" id="crawlNoComments"> 不采评论</label>
+            <button class="btn primary" id="btnCrawl">开始采集</button>
+            <button class="btn" id="btnCrawlPreview">只看命令</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>AI 关键词推荐 <span class="hint">读取群聊汇总，让 AI 给出适合在社媒检索的关键词</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>基于哪次群聊汇总</label>
+              <select id="kwSummaryDir"></select>
+            </div>
+            <div class="field">
+              <label>推荐组数</label>
+              <input type="number" id="kwCount" value="8" min="1" max="20">
+            </div>
+            <button class="btn" id="btnKeywordSuggest">推荐关键词</button>
+          </div>
+          <div id="kwResults" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <h3>关键词验证 <span class="hint">挑几个关键词，单独拿去小红书/知乎/B站检索，再和群聊讨论对照</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>关键词来源（群聊汇总）</label>
+              <select id="kvSummaryDir"></select>
+            </div>
+            <div class="field">
+              <label>候选词数量</label>
+              <input type="number" id="kvTop" value="30" min="5" max="120">
+            </div>
+            <div class="field">
+              <label>最少出现条数</label>
+              <input type="number" id="kvMinCount" value="3" min="1">
+            </div>
+            <label class="check"><input type="checkbox" id="kvOnlyDomain" checked> 只看领域词</label>
+            <button class="btn" id="btnKvExtract">提取候选关键词</button>
+          </div>
+          <div id="kvCandidates" style="margin-top:10px"></div>
+          <!-- 注意：这一行必须是静态存在的。syncKvKeywords() 会被关键词输入框的 input 事件直接调用，
+               若把它放在动态模板里，用户还没提取候选词就打字时会报 Cannot set properties of null。 -->
+          <div class="muted" id="kvSelectionInfo" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h3>执行验证 <span class="hint">选中关键词 → 选平台 → 一键检索并生成报告与汇总</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>已选关键词（可手动增删改，逗号/换行分隔）</label>
+              <textarea id="kvKeywords" placeholder="算法, 面试, 实习, 转正"></textarea>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field">
+              <label>平台</label>
+              <div id="kvPlatforms" class="row" style="gap:10px"></div>
+            </div>
+            <div class="field"><label>每个关键词条数</label><input type="number" id="kvLimit" value="10" min="1"></div>
+            <div class="field"><label>每条评论数</label><input type="number" id="kvComments" value="5" min="0"></div>
+            <div class="field">
+              <label>比对方式</label>
+              <select id="kvCompareMode">
+                <option value="social">纯社媒跨平台互比</option>
+                <option value="with-qq">跨平台互比 + 群聊对照</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>汇总引擎</label>
+              <select id="kvEngine">
+                <option value="auto">自动（有 AI 用 AI，否则本地）</option>
+                <option value="local">只用本地规则</option>
+                <option value="ai">只用 AI</option>
+              </select>
+            </div>
+            <label class="check"><input type="checkbox" id="kvAiVerdict" checked> AI 判定印证/补充/冲突</label>
+            <button class="btn primary" id="btnKvRun">开始验证</button>
+          </div>
+          <div class="muted" style="margin-top:8px">流程：逐词 × 平台检索 → <b>跨平台互比</b>（共识主题 ｜ 平台独有视角 ｜ 跨平台配对 ｜ 疑似同源）→ 汇总。
+            勾了「跨平台互比 + 群聊对照」时，额外用群聊里命中该词的消息再比一次。<br>
+            产物：<span class="mono">artifacts/keywords/verify-*/</span> 下的 <span class="mono">verify-report.md</span>（材料索引）与 <span class="mono">verify-summary.md</span>（汇总）。</div>
+          <div class="muted" id="kvEngineHint" style="margin-top:6px"></div>
+        </div>
+
+        <div class="card">
+          <h3>历史验证 <span class="hint">artifacts/keywords/</span></h3>
+          <table>
+            <thead><tr><th>批次</th><th>报告</th><th>汇总</th><th>时间</th><th></th></tr></thead>
+            <tbody id="kvResults"><tr><td colspan="5" class="empty">还没有验证记录</td></tr></tbody>
+          </table>
+          <pre class="preview" id="kvPreview" style="margin-top:10px">（点「查看」显示报告）</pre>
+        </div>
+
+        <div class="card">
+          <h3>采集批次 <span class="hint">artifacts/social/ 下每一次采集</span></h3>
+          <table>
+            <thead><tr><th>批次目录</th><th>文件数</th><th>记录数</th><th>时间</th><th></th></tr></thead>
+            <tbody id="socialRows"><tr><td colspan="5" class="empty">暂无采集结果</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ ③ 交叉比对 ============ -->
+      <section class="page" id="page-compare">
+        <div class="card">
+          <h3>运行交叉比对</h3>
+          <div class="row">
+            <div class="field grow">
+              <label>群聊汇总</label>
+              <select id="cmpQqDir"></select>
+            </div>
+            <div class="field grow">
+              <label>采集批次</label>
+              <select id="cmpSocialDir"></select>
+            </div>
+            <div class="field">
+              <label>配对上限</label>
+              <input type="number" id="cmpTop" value="40" min="5">
+            </div>
+            <div class="field">
+              <label>最低相似度</label>
+              <input type="number" id="cmpMinScore" value="0.18" step="0.01" min="0">
+            </div>
+            <button class="btn primary" id="btnCompareRun">开始比对</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>AI 判定 <span class="hint">对配对标出「印证 / 补充 / 冲突」</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>比对结果目录</label>
+              <select id="cmpResultDir"></select>
+            </div>
+            <div class="field">
+              <label>判定条数</label>
+              <input type="number" id="verdictLimit" value="40" min="1">
+            </div>
+            <button class="btn" id="btnVerdict">开始 AI 判定</button>
+            <button class="btn" id="btnLoadCompare">查看比对材料</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>比对结果</h3>
+          <table>
+            <thead><tr><th>目录</th><th>产物</th><th></th></tr></thead>
+            <tbody id="compareRows"><tr><td colspan="3" class="empty">暂无比对结果</td></tr></tbody>
+          </table>
+          <pre class="preview" id="comparePreview" style="margin-top:10px">（点「查看比对材料」显示）</pre>
+        </div>
+      </section>
+
+      <!-- ============ ④ 总结 ============ -->
+      <section class="page" id="page-summary">
+        <div class="card">
+          <h3>总结设置</h3>
+          <div class="row">
+            <div class="field grow">
+              <label>群聊汇总</label>
+              <select id="sumSummaryDir"></select>
+            </div>
+            <div class="field grow">
+              <label>交叉比对（可选）</label>
+              <select id="sumCompareDir"></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div class="field grow">
+              <label>指定关键词（可选，逗号分隔）<span class="hint">填了就只围绕这些词总结</span></label>
+              <input type="text" id="sumKeywords" placeholder="例如：算法 面试, 转正, hc">
+            </div>
+            <div class="field grow">
+              <label>附加上传文件（可选）</label>
+              <select id="sumDocBatch" multiple size="3" style="min-height:70px"></select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div class="field grow">
+              <label>风格要求（可选）</label>
+              <input type="text" id="sumStyle" placeholder="例如：简洁，重点突出，每段不超过 3 行">
+            </div>
+            <div class="field grow">
+              <label>重点关注（可选）</label>
+              <input type="text" id="sumFocus" placeholder="例如：内推与截止时间、实习机会，忽略闲聊">
+            </div>
+            <label class="check"><input type="checkbox" id="sumDeep"> 原文深度模式（按天分块读原文）</label>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>方式一：本地 DSH <span class="hint">免额外配置，可用技能与图片能力</span></h3>
+            <p class="muted">用 <span class="mono">dsh --profile headless</span> 跑一次任务：读取汇总与比对材料后写出报告。消耗 DSH 的模型额度。</p>
+            <p class="muted" id="dshEngineState">DSH 状态：检查中…</p>
+            <button class="btn primary" id="btnSummaryDsh">用本地 DSH 生成</button>
+          </div>
+
+          <div class="card">
+            <h3>方式二：我的 API <span class="hint">不依赖 DSH</span></h3>
+            <p class="muted" id="apiEngineState">API 配置：检查中…</p>
+            <div class="row">
+              <button class="btn" id="btnSummaryPreview">预估费用 / 材料</button>
+              <button class="btn primary" id="btnSummaryApi">用我的 API 生成</button>
+            </div>
+            <div id="summaryPreviewBox" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>方式三：只生成提示词 <span class="hint">把材料拼成提示词，自行复制到任意 AI</span></h3>
+          <button class="btn" id="btnSummaryPrompt">生成提示词文件</button>
+        </div>
+
+        <div class="card">
+          <h3>历史总结 <span class="hint">artifacts/summary/</span></h3>
+          <table>
+            <thead><tr><th>文件</th><th></th></tr></thead>
+            <tbody id="summaryFileRows"><tr><td colspan="2" class="empty">暂无</td></tr></tbody>
+          </table>
+          <pre class="preview" id="summaryPreview" style="margin-top:10px">（选择历史总结查看）</pre>
+        </div>
+      </section>
+
+      <!-- ============ ⑤ 文件汇总 ============ -->
+      <section class="page" id="page-docs">
+        <div class="card">
+          <h3>上传文件 <span class="hint">支持 PDF / Word / Excel / PPT / 文本 / 网页等；文件只保存在本机</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>批次名（留空 = 按日期分组）</label>
+              <input type="text" id="docBatch" placeholder="例如 2026-09-13-校招材料">
+            </div>
+            <div class="field">
+              <label>选择文件</label>
+              <input type="file" id="docFileInput" multiple>
+            </div>
+          </div>
+          <div id="docDrop" class="dropzone" style="margin-top:10px">
+            把文件拖到这里，或点击上方「选择文件」
+          </div>
+          <div class="muted" id="docUploadStatus" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h3>提取与汇总</h3>
+          <div class="row">
+            <div class="field grow">
+              <label>选择批次</label>
+              <select id="docBatchPick"></select>
+            </div>
+            <button class="btn" id="btnDocExtract">提取文本</button>
+            <button class="btn" id="btnDocPreview">预估 / 预览材料</button>
+            <button class="btn primary" id="btnDocSummary">用 AI 汇总选中批次</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field grow">
+              <label>提示词模板（选中即填充下面的风格 / 关注点）</label>
+              <select id="docTemplate"><option value="">（未使用模板）</option></select>
+            </div>
+            <div class="field">
+              <label>汇总引擎</label>
+              <select id="docEngine">
+                <option value="auto">自动（有 AI 用 AI，否则本地）</option>
+                <option value="local">只用本地规则</option>
+                <option value="ai">只用 AI</option>
+              </select>
+            </div>
+            <button class="btn" id="btnDocTplSave">另存为模板</button>
+            <button class="btn" id="btnDocTplDelete">删除模板</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field grow"><label>风格要求（可选）</label><input type="text" id="docStyle" placeholder="例如：条目式，突出截止时间"></div>
+            <div class="field grow"><label>重点关注（可选）</label><input type="text" id="docFocus" placeholder="例如：报名方式、材料清单、联系方式"></div>
+          </div>
+          <div class="muted" id="docEngineHint" style="margin-top:6px"></div>
+          <div class="progress" id="docProgressWrap" style="display:none"><span id="docProgress"></span></div>
+        </div>
+
+        <div class="card">
+          <h3>批次与文件</h3>
+          <table>
+            <thead><tr><th style="width:34px"></th><th>批次 / 文件</th><th>大小</th><th>提取状态</th><th></th></tr></thead>
+            <tbody id="docRows"><tr><td colspan="5" class="empty">还没有上传文件</td></tr></tbody>
+          </table>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="btnDocOpenRoot">打开上传目录</button>
+            <button class="btn" id="btnDocOpenDocs">打开提取结果目录</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>文件汇总报告 <span class="hint">artifacts/docs/</span></h3>
+          <table>
+            <thead><tr><th>报告</th><th>大小</th><th>时间</th><th></th></tr></thead>
+            <tbody id="docSummaryRows"><tr><td colspan="4" class="empty">还没有生成汇总</td></tr></tbody>
+          </table>
+          <pre class="preview" id="docPreview" style="margin-top:10px">（点「查看」显示内容）</pre>
+        </div>
+      </section>
+
+      <!-- ============ ⑥ 设置 ============ -->
+      <section class="page" id="page-settings">
+        <div class="card">
+          <h3>平台登录 <span class="hint">社媒采集用的独立 Edge 实例；登录态只存在它的 profile 里</span></h3>
+          <div class="row">
+            <div class="field grow">
+              <label>采集实例</label>
+              <div class="muted" id="loginInstanceInfo">（读取中…）</div>
+            </div>
+            <button class="btn" id="btnCrawlEdgeStart">启动采集实例</button>
+            <button class="btn" id="btnLoginCheck">检测登录状态</button>
+          </div>
+          <table style="margin-top:10px">
+            <thead><tr><th>平台</th><th>登录状态</th><th></th></tr></thead>
+            <tbody id="loginRows"><tr><td colspan="3" class="empty">点「检测登录状态」查看</td></tr></tbody>
+          </table>
+          <div class="muted" id="loginHint" style="margin-top:8px">
+            采集与登录都在<b>采集实例</b>里进行，不会占用你看界面的那个 Edge 窗口；采集结束后它会自动关掉自己打开的社媒标签页。
+            首次使用请点各平台的「打开登录页」扫码登录，登录完再点「检测登录状态」确认。
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>AI 服务</h3>
+          <div class="row">
+            <div class="field grow">
+              <label>当前使用</label>
+              <select id="setActiveProvider"></select>
+            </div>
+            <button class="btn" id="btnNewProvider">新增服务</button>
+          </div>
+          <table style="margin-top:10px">
+            <thead><tr><th>名称</th><th>格式</th><th>Base URL</th><th>默认模型</th><th>Key</th><th></th></tr></thead>
+            <tbody id="providerRows"><tr><td colspan="6" class="empty">尚未配置</td></tr></tbody>
+          </table>
+          <div class="muted" style="margin-top:8px">API Key 使用 Windows 凭据保护（DPAPI，当前用户加密）保存在 <span class="mono">app/.local/secrets/</span>，界面只显示是否已配置。</div>
+        </div>
+
+        <div class="card">
+          <h3>按环节指定模型 <span class="hint">留空表示用「当前使用」的服务与模型</span></h3>
+          <div class="row">
+            <div class="field grow"><label>关键词推荐</label><input type="text" id="stepKeywords" placeholder="providerId/模型名，或留空"></div>
+            <div class="field grow"><label>分类复判</label><input type="text" id="stepClassify"></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field grow"><label>比对判定</label><input type="text" id="stepCompare"></div>
+            <div class="field grow"><label>总结</label><input type="text" id="stepSummary"></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="check"><input type="checkbox" id="setConfirmSend"> API 调用前弹窗确认</label>
+            <div class="field"><label>单次最大字符数</label><input type="number" id="setMaxChars" min="2000" step="1000"></div>
+            <button class="btn primary" id="btnSaveAiSteps">保存</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>单价表 <span class="hint">用于费用估算，单位：元 / 百万 token</span></h3>
+          <div class="row">
+            <div class="field"><label>价格表名称</label><input type="text" id="priceBookName" placeholder="我的价格表"></div>
+            <button class="btn" id="btnAddPriceBook">新建价格表</button>
+          </div>
+          <div id="priceBookEditor" style="margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <h3>聊天记录读取位置 <span class="hint">QCE 导出到哪个目录，就填哪个（留空 = 项目内默认目录）</span></h3>
+          <div id="dirCurrent" class="muted" style="margin-bottom:8px"></div>
+          <div class="row">
+            <div class="field grow">
+              <label>手动导出目录</label>
+              <input type="text" id="setExportsDir" placeholder="留空 = 项目内 data/qq-chat-exporter/exports；也可填 D:\\QQChatExporter\\exports">
+            </div>
+            <button class="btn" id="btnBrowseExports">浏览…</button>
+            <button class="btn" id="btnCheckExports">校验</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field grow">
+              <label>定时导出目录（可选）</label>
+              <input type="text" id="setScheduledDir" placeholder="留空 = 项目内 data/qq-chat-exporter/scheduled-exports">
+            </div>
+            <button class="btn" id="btnBrowseScheduled">浏览…</button>
+            <button class="btn" id="btnCheckScheduled">校验</button>
+          </div>
+          <div id="dirCheckResult" class="muted" style="margin-top:8px"></div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn primary" id="btnSaveDirs">保存读取位置</button>
+            <button class="btn" id="btnResetDirs">恢复默认</button>
+            <button class="btn" id="btnRescanExports">保存并重新扫描</button>
+          </div>
+          <div class="muted" style="margin-top:8px">
+            说明：填绝对路径可读取放在其它盘/别的机器的导出（例如 <span class="mono">D:\QQChatExporter\exports</span>）；
+            归档时若跨盘会自动改为“复制后删除”。修改后需要重新扫描导出列表。
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>运行环境</h3>
+          <div class="row">
+            <div class="field grow"><label>项目根（只读）</label><input type="text" id="setProjectRoot" readonly></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field"><label>控制台端口</label><input type="number" id="setPort" min="1024" max="65535"></div>
+            <div class="field"><label>DSH 端口</label><input type="number" id="setDshPort" min="1024" max="65535"></div>
+            <div class="field"><label>Edge 调试端口</label><input type="number" id="setCdpPort" min="1024" max="65535"></div>
+            <label class="check"><input type="checkbox" id="setAutoEdge"> 启动时自动拉起 Edge</label>
+            <label class="check"><input type="checkbox" id="setAutoDsh"> 启动时自动拉起 DSH</label>
+            <label class="check"><input type="checkbox" id="setOpenBrowser"> 启动时打开浏览器</label>
+            <button class="btn primary" id="btnSaveRuntime">保存</button>
+          </div>
+          <div class="muted" style="margin-top:8px">端口修改需重启控制台生效；Edge/DSH 会自动择空闲端口之外，这里只影响我们对它们的探测与启动。</div>
+        </div>
+
+        <div class="card">
+          <h3>分类与总结默认值</h3>
+          <div class="row">
+            <div class="field"><label>分类模式</label>
+              <select id="setClassifyMode">
+                <option value="script-then-ai">脚本先跑 + AI 复判覆盖</option>
+                <option value="script-only">只用脚本正则</option>
+              </select>
+            </div>
+            <div class="field"><label>复判每批条数</label><input type="number" id="setClassifyBatch" min="10" max="120"></div>
+            <div class="field"><label>默认采集条数</label><input type="number" id="setDefaultLimit" min="1"></div>
+            <div class="field"><label>默认评论条数</label><input type="number" id="setDefaultComments" min="0"></div>
+            <div class="field"><label>默认总结方式</label>
+              <select id="setEngine">
+                <option value="dsh">本地 DSH</option>
+                <option value="api">我的 API</option>
+                <option value="prompt">只生成提示词</option>
+              </select>
+            </div>
+            <button class="btn primary" id="btnSaveDefaults">保存</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="bottomPanel">
+      <div class="h-splitter" id="splitLog" title="上下拖动调整日志区高度（双击恢复默认）"></div>
+
+      <div class="card" style="margin:0 18px 18px">
+        <h3>当前进程 <span class="hint">正在运行的任务与其系统进程（每 3 秒刷新）</span></h3>
+        <div class="proc-table">
+        <table>
+          <thead><tr><th>状态</th><th>任务</th><th>PID</th><th>已运行</th><th>启动的命令</th><th></th></tr></thead>
+          <tbody id="procRows"><tr><td colspan="6" class="empty">当前没有正在运行的任务</td></tr></tbody>
+        </table>
+        </div>
+        <div class="muted" id="procAppInfo" style="margin-top:6px"></div>
+      </div>
+
+      <div class="card" style="margin:0 18px 18px">
+        <h3>运行日志 <span class="hint" id="logJobTitle">（最近一个任务）</span></h3>
+        <div class="row" style="margin-bottom:8px">
+          <div class="field grow">
+            <label>任务</label>
+            <select id="jobPick"></select>
+          </div>
+        <button class="btn small" id="btnCancelJob">停止该任务</button>
+        <button class="btn small" id="btnClearLog">清空显示</button>
+        </div>
+        <div class="log" id="logBox"></div>
+        <div id="lastError" class="muted" style="display:none;margin-top:6px;color:var(--err)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────
+# 本仓库的原则：只提交「代码 + 文档 + 合成示例」，绝不提交真实数据与凭据
+# ─────────────────────────────────────────────────────────────
+
+# 真实聊天数据（含昵称、聊天内容、图片、文件）
+/data/
+
+# 产物：汇总 / 采集 / 比对 / 关键词 / 上传文档
+# 注意：用 /artifacts/* 而不是 artifacts/ —— 否则无法再把 _samples 排除出去
+/artifacts/*
+!/artifacts/_samples/
+
+# 本地控制台运行数据（配置与 API Key）
+/app/.local/
+
+# 虚拟环境与临时目录
+.venv/
+.tmp/
+
+# 第三方采集后端（禁商用许可，由使用者自行克隆）
+/tools/MediaCrawler/
+
+# 开发/侦察用的本地脚本与下载物（含绝对路径与一次性逻辑，不对外发布）
+/_recon/
+
+# 其它本地参考资料
+/reference/
+/integrations/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Node（本仓库前端零依赖，这里只防御误装）
+node_modules/
+npm-debug.log*
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时文件
+*.log
+*.log.err
+*.tmp
+~$*

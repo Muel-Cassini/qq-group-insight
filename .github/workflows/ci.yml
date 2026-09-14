@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax-and-hygiene:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Node 语法检查（后端 + 前端）
+        shell: pwsh
+        run: |
+          $fail = @()
+          Get-ChildItem -Recurse -File -Include *.mjs, *.js |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\' } |
+            ForEach-Object {
+              node --check $_.FullName
+              if ($LASTEXITCODE -ne 0) { $fail += $_.FullName }
+            }
+          if ($fail.Count -gt 0) { Write-Error ("语法检查失败：" + ($fail -join ', ')); exit 1 }
+          Write-Host "Node 语法检查通过"
+
+      - name: Python 语法检查
+        shell: pwsh
+        run: |
+          $fail = @()
+          Get-ChildItem -Recurse -File -Include *.py |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\' } |
+            ForEach-Object {
+              python -c "import ast,sys; ast.parse(open(sys.argv[1],encoding='utf-8').read())" $_.FullName
+              if ($LASTEXITCODE -ne 0) { $fail += $_.FullName }
+            }
+          if ($fail.Count -gt 0) { Write-Error ("Python 语法检查失败：" + ($fail -join ', ')); exit 1 }
+          Write-Host "Python 语法检查通过"
+
+      - name: 隐私红线检查（真实数据 / 密钥不得进入仓库）
+        shell: pwsh
+        run: |
+          $bad = @()
+          foreach ($p in 'data', 'artifacts/uploads', 'artifacts/qq', 'artifacts/social', 'app/.local', 'tools/MediaCrawler') {
+            if (Test-Path $p) {
+              $tracked = git ls-files -- $p
+              if ($tracked) { $bad += $p }
+            }
+          }
+          $secrets = git ls-files | Where-Object { $_ -match 'secrets/|\.env$|\.pem$|\.key$' }
+          if ($secrets) { $bad += ($secrets -join ', ') }
+          if ($bad.Count -gt 0) { Write-Error ("疑似隐私/凭据文件被提交：" + ($bad -join ', ')); exit 1 }
+          Write-Host "隐私红线检查通过：没有真实数据与密钥被提交"
+
+      - name: 启动脚本必须 ASCII-only（cmd.exe 用 ANSI 读取）
+        shell: pwsh
+        run: |
+          $f = 'app/启动.cmd'
+          if (-not (Test-Path $f)) { Write-Error "找不到 $f"; exit 1 }
+          $bytes = [System.IO.File]::ReadAllBytes($f)
+          $nonAscii = ($bytes | Where-Object { $_ -gt 127 }).Count
+          if ($nonAscii -gt 0) { Write-Error "$f 含 $nonAscii 个非 ASCII 字节（会导致启动失败）"; exit 1 }
+          Write-Host "$f 是纯 ASCII"

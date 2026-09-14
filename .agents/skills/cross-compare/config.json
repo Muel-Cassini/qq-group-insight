@@ -1,0 +1,65 @@
+{
+  "_readme": [
+    "cross-compare 规则配置。修改后立即生效（脚本每次运行都会读取本文件），无需改代码。",
+    "加载优先级：命令行 --config <路径>  >  本文件  >  脚本内置默认值。",
+    "所有字段都可省略；省略即沿用内置默认值。字段类型写错时只忽略该字段并打印警告，不会中断比对。",
+    "正则/词表用 Python 语法；注意 JSON 里反斜杠要写两次。",
+    "调参方向：配对太少 → 降 thresholds.min_shared_terms 或 defaults.min_score；配对太杂 → 提高 min_score、"
+  ],
+
+  "topic_vocab": [
+    "小红书", "知乎", "b站", "bilibili", "抖音", "快手", "微博", "贴吧", "公众号", "视频号",
+    "docker", "k8s", "kubernetes", "linux", "windows", "macos", "nginx", "redis", "mysql",
+    "postgres", "postgresql", "sqlite", "mongodb", "es", "elasticsearch", "kafka", "rabbitmq", "grpc",
+    "python", "java", "javascript", "typescript", "node", "nodejs", "go", "golang", "rust",
+    "c++", "c#", "php", "kotlin", "swift", "sql", "html", "css", "react", "vue", "next",
+    "fastapi", "django", "flask", "spring", "pytorch", "tensorflow", "transformers", "llm",
+    "大模型", "模型", "微调", "训练", "推理", "量化", "rag", "agent", "mcp", "prompt",
+    "openai", "claude", "deepseek", "qwen", "gemini", "gpt", "ollama", "vllm",
+    "爬虫", "采集", "反爬", "风控", "封号", "cookie", "登录", "账号", "代理", "指纹",
+    "浏览器", "playwright", "selenium", "chrome", "edge", "cdp", "无头",
+    "报错", "异常", "崩溃", "内存", "oom", "性能", "优化", "并发", "缓存", "数据库",
+    "部署", "容器", "服务器", "云服务", "阿里云", "腾讯云", "aws", "vercel", "docker compose",
+    "面试", "笔试", "实习", "招聘", "内推", "简历", "秋招", "春招", "校招", "宣讲会",
+    "offer", "hc", "转正", "薪资", "保研", "考研", "考公", "留学", "分流",
+    "副业", "变现", "流量", "选题", "涨粉", "爆款", "运营", "带货", "私域",
+    "开源", "github", "gitee", "star", "issue", "pr", "license", "许可"
+  ],
+
+  "stopwords_extra": [],
+
+  "lowercase_short_terms": [
+    "k8s", "api", "sdk", "sql", "gpu", "llm", "rag", "mcp", "vllm", "grpc", "es"
+  ],
+
+  "ascii_min_len": 2,
+  "ascii_case_sensitive_max_len": 3,
+
+  "scoring": {
+    "weight_overlap": 0.45,
+    "weight_jaccard": 0.2,
+    "weight_per_topic": 0.05,
+    "topic_cap": 4,
+    "bonus_shared_topic": 0.1,
+    "bonus_shared_url": 0.05
+  },
+
+  "thresholds": {
+    "min_shared_terms": 3,
+    "max_qq_per_social": 2,
+    "freshness_days": 30
+  },
+
+  "excerpt_chars": {
+    "qq": 300,
+    "social": 300,
+    "comment": 120,
+    "title": 120
+  },
+
+  "defaults": {
+    "top": 40,
+    "min_score": 0.18,
+    "max_qq": 0
+  }
+}

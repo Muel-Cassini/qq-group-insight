@@ -1,0 +1,14 @@
+{
+  "name": "dsh-chat-summary-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QQ 群聊汇总 × 社媒交叉比对 本地控制台（零依赖，Node 内置模块实现）",
+  "type": "module",
+  "main": "server/main.mjs",
+  "scripts": {
+    "start": "node server/main.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
