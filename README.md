@@ -132,10 +132,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\launch-edge-cdp.ps1
 
 | 组件 | 许可 | 说明 |
 |---|---|---|
-| 本仓库自有代码 | **MIT**（见 `LICENSE`） | 可自由使用、修改、分发 |
+| 本仓库自有代码 | **MIT**（见 [`LICENSE`](LICENSE)） | 可自由使用、修改、分发 |
 | [MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) | **NON-COMMERCIAL LEARNING LICENSE 1.1** | **禁止商业用途**；不随本仓库发布，需自行获取。商用必须替换掉它 |
 | [QQ Chat Exporter](https://github.com/shuakami/qq-chat-exporter) | **GPL-3.0** | 独立程序；本仓库只读取它导出的 JSON |
 | 小红书 / 知乎 / B站 | 各平台用户条款 | 采集前请自行确认条款与 robots 约定，控制频率，风险自负 |
+
+> 第三方组件的完整清单、获取方式与「为什么不在仓库里」的说明见
+> [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)。
 
 > ⚠️ 本项目面向**个人学习与研究**。请勿用于商业用途，也不要用于批量抓取或绕开平台限制。
 
