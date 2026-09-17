@@ -1,3 +1,0 @@
-{"comment_id":"c1","note_id":"xhs001","content":"我也遇到过，把 mem_limit 从 256m 提到 1g 就好了，另外注意 swap 也要给","nickname":"路人A","like_count":"120"}
-{"comment_id":"c2","note_id":"xhs001","content":"还有一种情况是健康检查失败导致反复重启，不是 OOM","nickname":"运维老王","like_count":"88"}
-{"comment_id":"c3","note_id":"zhihu001","content":"overlay 网络下容器重建 IP 变化导致的连接失败，用 service name 而不是 IP 就能解决","nickname":"k8s玩家","like_count":"56"}
